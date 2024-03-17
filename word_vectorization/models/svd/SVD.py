@@ -18,7 +18,7 @@ class SvdWordVectorizationModel(WordVectorizationModel):
 
     def train(self):
         coOccurrenceMatrix = self.computeCoOccurrenceMatrix()
-
+        
         self.U, self.S, self.V = np.linalg.svd(coOccurrenceMatrix)
 
         # selecting first embeddingSize
@@ -42,6 +42,8 @@ class SvdWordVectorizationModel(WordVectorizationModel):
                 for k in range(i, j):
                     coOccurrenceMatrix[self.wordIndices[sentence[k]], self.wordIndices[sentence[j]]] += 1
                     coOccurrenceMatrix[self.wordIndices[sentence[j]], self.wordIndices[sentence[k]]] += 1
+        
+        return coOccurrenceMatrix
     
     def initializeCoOccurrenceMatrix(self):
         coOccuranceMatrix = np.zeros(shape=(len(self.wordIndices), len(self.wordIndices)))
