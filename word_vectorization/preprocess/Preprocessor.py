@@ -28,7 +28,8 @@ class Preprocessor:
                 tokenList = [ word.lower() for word in tokenList ]
                 newSentenceTokens += tokenList
 
-            stemmedTokens = [stemmer.stem(token) for token in newSentenceTokens]
+            # stemmedTokens = [stemmer.stem(token) for token in newSentenceTokens]
+            stemmedTokens = newSentenceTokens
             tokens.append(stemmedTokens)
             vocabuary.update(stemmedTokens)
 

@@ -1,4 +1,6 @@
 import numpy as np
+import pickle as pkl
+import os
 
 from word_vectorization.models.Model import WordVectorizationModel
 
@@ -15,14 +17,29 @@ class SvdWordVectorizationModel(WordVectorizationModel):
             raise ValueError("Embedding size should not be greater than the vocabulary size.")
 
         self.embeddingSize = embeddingSize
+        self.__trained = False
 
-    def train(self):
+    def train(self, verbose : bool = True):
+        if self.__trained:
+            self.embeddings = self.__loadEmbeddings()
+            if verbose:
+                print("Model already trained. Embeddings loaded.")
+            return self.embeddings
+        
         coOccurrenceMatrix = self.computeCoOccurrenceMatrix()
+        if verbose:
+            print("Computed co-occurence matrix.")
         
         self.U, self.S, self.V = np.linalg.svd(coOccurrenceMatrix)
+        if verbose:
+            print("Computed Singular Value Decomposition of the co-occurence matrix.")
 
-        # selecting first embeddingSize
+        # selecting first embeddingSizet
         self.embeddings = self.U[:, :self.embeddingSize]
+
+        self.__trained = True
+
+        self.__saveEmbeddings() 
 
         return self.embeddings
 
@@ -50,5 +67,18 @@ class SvdWordVectorizationModel(WordVectorizationModel):
         
         return coOccuranceMatrix
     
+    def __saveEmbeddings(self):
+        # check if directory exists
+        if not os.path.exists('./model_cache/svd'):
+            os.mkdir('./model_cache/svd')
+        
+        pkl.dump(self.embeddings, open(f'./model_cache/svd/embeddings_{self.contextSize}_{len(self.wordIndices)}.pkl', 'wb'))
+    
+    def __loadEmbeddings(self):
+        if not os.path.exists(f'./model_cache/svd/embeddings_{self.contextSize}_{len(self.wordIndices)}.pkl'):
+            raise ValueError("Embeddings not found. Train the model first.")
+
+        return pkl.load(open(f'./model_cache/svd/embeddings_{self.contextSize}_{len(self.wordIndices)}.pkl', 'rb'))
+
 if __name__ == "__main__":
     model = SvdWordVectorizationModel()
