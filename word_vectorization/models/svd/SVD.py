@@ -4,6 +4,8 @@ import os
 
 from word_vectorization.models.Model import WordVectorizationModel
 
+MODEL_CACHE_PATH = './model_cache/svd'
+
 class SvdWordVectorizationModel(WordVectorizationModel):
     def __init__(self, *parentClassArgs, embeddingSize : int = 16) -> None:
         """
@@ -18,6 +20,7 @@ class SvdWordVectorizationModel(WordVectorizationModel):
 
         self.embeddingSize = embeddingSize
         self.__trained = False
+        self.__modelFileSuffix = f"_{self.contextSize}_{len(self.wordIndices)}_{self.embeddingSize}"
 
     def train(self, verbose : bool = True):
         if self.__trained:
@@ -69,16 +72,16 @@ class SvdWordVectorizationModel(WordVectorizationModel):
     
     def __saveEmbeddings(self):
         # check if directory exists
-        if not os.path.exists('./model_cache/svd'):
-            os.mkdir('./model_cache/svd')
+        if not os.path.exists(MODEL_CACHE_PATH):
+            os.mkdir(MODEL_CACHE_PATH)
         
-        pkl.dump(self.embeddings, open(f'./model_cache/svd/embeddings_{self.contextSize}_{len(self.wordIndices)}.pkl', 'wb'))
+        pkl.dump(self.embeddings, open(os.path.join(MODEL_CACHE_PATH, f'embeddings{self.__modelFileSuffix}.pkl'), 'wb'))
     
     def __loadEmbeddings(self):
-        if not os.path.exists(f'./model_cache/svd/embeddings_{self.contextSize}_{len(self.wordIndices)}.pkl'):
+        if not os.path.exists(f'./model_cache/svd/embeddings{self.__modelFileSuffix}.pkl'):
             raise ValueError("Embeddings not found. Train the model first.")
 
-        return pkl.load(open(f'./model_cache/svd/embeddings_{self.contextSize}_{len(self.wordIndices)}.pkl', 'rb'))
+        return pkl.load(open(f'./model_cache/svd/embeddings_{self.__modelFileSuffix}.pkl', 'rb'))
 
 if __name__ == "__main__":
     model = SvdWordVectorizationModel()
