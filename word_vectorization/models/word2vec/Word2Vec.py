@@ -19,7 +19,7 @@ class Word2Vec(WordVectorizationModel):
         self.embeddingSize = embeddingSize
         self.k = k
         self.word2VecModel = Word2VecClassifier(self.embeddingSize, self.wordIndices)
-        self.__modelFileSuffix = f"_{self.contextSize}_{self.k}_{self.embeddingSize}_{len(self.wordIndices)}"
+        self.__modelFileSuffix = f"_{self.contextSize}_{self.k}_{self.embeddingSize}_{len(self.indexWords)}"
 
     def train(self, epochs : int = 10, lr : float = 0.001, batchSize : int = 32, verbose : bool = True, retrain : bool = False) -> None:
         if(not retrain and self.__loadEmbeddings()):
@@ -29,7 +29,7 @@ class Word2Vec(WordVectorizationModel):
         else:
             if verbose:
                 print("Saved embeddings not found. Starting training from scratch.")    
-            
+        
         trainDataset = Word2VecDataset(list(chain.from_iterable(self.tokens)), self.contextSize, self.k, self.wordIndices)
         
         optimizer = torch.optim.Adam(self.word2VecModel.parameters(), lr=lr)
@@ -88,6 +88,17 @@ class Word2Vec(WordVectorizationModel):
         self.embeddings = embeddings
 
         return True
+    
+    def getClosestWordEmbeddings(self, wordEmbedding : np.ndarray, k : int = 10) -> dict[str, np.ndarray]:
+        """
+        Parameters:
+            wordEmbedding: a numpy array of size (self.embeddingSize, )
+            k: number of closest word embeddings to return
+        """
+        distances = np.linalg.norm(self.embeddings - wordEmbedding, axis=1)
+        kClosestIndices = np.argsort(distances)[:k]
+
+        return {self.indexWords[index]: self.embeddings[index] for index in kClosestIndices}
 
 class Word2VecClassifier(torch.nn.Module):
     def __init__(self, embeddingSize : int, wordIndices : dict[str, int]) -> None:
@@ -106,6 +117,5 @@ class Word2VecClassifier(torch.nn.Module):
         # rest are the context words and negative samples
         embeds = self.contextEmbeddings(x[:, 1:]) # size (batch_size, 2 * contextSize * (k + 1), embeddingSize)
 
-        output = self.sigmoid(torch.matmul(embeds, torch.transpose(word, 1, 2))) # size (2 * contextSize * (k + 1), 1) 
+        output = self.sigmoid(embeds.mm(torch.transpose(word, 1, 2))) # size (2 * contextSize * (k + 1), 1) 
         return output
-    

@@ -1,4 +1,6 @@
 import numpy as np
+from scipy.sparse import lil_matrix
+from scipy.sparse.linalg import svds
 import pickle as pkl
 import os
 
@@ -15,32 +17,26 @@ class SvdWordVectorizationModel(WordVectorizationModel):
         """
         super().__init__(*parentClassArgs)
 
-        if embeddingSize > len(self.wordIndices):
-            raise ValueError("Embedding size should not be greater than the vocabulary size.")
-
         self.embeddingSize = embeddingSize
         self.__trained = False
-        self.__modelFileSuffix = f"_{self.contextSize}_{len(self.wordIndices)}_{self.embeddingSize}"
+        self.__modelFileSuffix = f"_{self.contextSize}_{self.embeddingSize}_{len(self.indexWords)}"
 
-    def train(self, verbose : bool = True):
-        if self.__trained:
-            self.embeddings = self.__loadEmbeddings()
+    def train(self, verbose : bool = True, retrain : bool = False):
+        if self.__loadEmbeddings() and not retrain:
             if verbose:
                 print("Model already trained. Embeddings loaded.")
             return self.embeddings
-        
+        else:
+            if verbose:
+                print("Embeddings not found. Starting training from scratch.")
+
         coOccurrenceMatrix = self.computeCoOccurrenceMatrix()
         if verbose:
             print("Computed co-occurence matrix.")
         
-        self.U, self.S, self.V = np.linalg.svd(coOccurrenceMatrix)
+        self.embeddings, self.S, self.Vh = svds(coOccurrenceMatrix, k=self.embeddingSize, which='LM')
         if verbose:
-            print("Computed Singular Value Decomposition of the co-occurence matrix.")
-
-        # selecting first embeddingSizet
-        self.embeddings = self.U[:, :self.embeddingSize]
-
-        self.__trained = True
+            print("Computed Partial Singular Value Decomposition of the co-occurence matrix.")
 
         self.__saveEmbeddings() 
 
@@ -66,7 +62,7 @@ class SvdWordVectorizationModel(WordVectorizationModel):
         return coOccurrenceMatrix
     
     def initializeCoOccurrenceMatrix(self):
-        coOccuranceMatrix = np.zeros(shape=(len(self.wordIndices), len(self.wordIndices)))
+        coOccuranceMatrix = lil_matrix((len(self.wordIndices), len(self.wordIndices)), dtype=np.float64)
         
         return coOccuranceMatrix
     
@@ -76,12 +72,15 @@ class SvdWordVectorizationModel(WordVectorizationModel):
             os.mkdir(MODEL_CACHE_PATH)
         
         pkl.dump(self.embeddings, open(os.path.join(MODEL_CACHE_PATH, f'embeddings{self.__modelFileSuffix}.pkl'), 'wb'))
-    
+
     def __loadEmbeddings(self):
         if not os.path.exists(f'./model_cache/svd/embeddings{self.__modelFileSuffix}.pkl'):
-            raise ValueError("Embeddings not found. Train the model first.")
+            # raise ValueError("Embeddings not found. Train the model first.")
+            return False
 
-        return pkl.load(open(f'./model_cache/svd/embeddings_{self.__modelFileSuffix}.pkl', 'rb'))
+        self.embeddings = pkl.load(open(f'./model_cache/svd/embeddings{self.__modelFileSuffix}.pkl', 'rb'))
+
+        return True
 
 if __name__ == "__main__":
     model = SvdWordVectorizationModel()
