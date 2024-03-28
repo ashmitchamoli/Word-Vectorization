@@ -7,7 +7,7 @@ class Preprocessor:
         self.stemmer = nltk.stem.PorterStemmer()
         pass
 
-    def getTokens(self, fileName) -> tuple[list[list[str]], dict]:
+    def getTokens(self, fileName : str) -> tuple[list[list[str]], dict]:
         """
         returns:
             tokens: a list of list of tokens.
@@ -17,30 +17,49 @@ class Preprocessor:
         vocabuary = set()
 
         data = self.readData(fileName)
+        self.labels = list(data['Class Index'])
 
         def tokenizeSentence(row):
             sentence = row['Description']
-            sentenceTokens = nltk.tokenize.word_tokenize(sentence)
-            
-            newSentenceTokens = []
-            for token in sentenceTokens:
-                tokenList = re.split('[^a-zA-Z0-9]', token)
-                tokenList = [ word.lower() for word in tokenList ]
-                newSentenceTokens += tokenList
 
-            stemmedTokens = [self.stemmer.stem(token) for token in newSentenceTokens]
-            stemmedTokens = newSentenceTokens
+            # get tokenized sentence
+            stemmedTokens = self.tokenizeSentence(sentence)       
             tokens.append(stemmedTokens)
+
+            # update vocabulary
             vocabuary.update(stemmedTokens)
 
         data.apply(tokenizeSentence, axis=1)
 
-        wordIndices = {word: i for i, word in enumerate(vocabuary)}
+        wordIndices : dict[str, int] = {word: i for i, word in enumerate(vocabuary)}
         wordIndices['<PAD>'] = len(wordIndices)
 
         return tokens, wordIndices
     
-    def processWord(self, word : str):
+    def tokenizeSentence(self, sentence : str) -> list[str]:
+        """
+        return a list of tokenized, stemmed, lowered words of the given sentence.
+        """
+        # basic tokenization
+        sentenceTokens = nltk.tokenize.word_tokenize(sentence)
+
+        # extract alphanumeric phrases
+        newSentenceTokens = []
+        for token in sentenceTokens:
+            tokenList = re.split('[^a-zA-Z0-9]', token)
+            tokenList = [ word.lower() for word in tokenList ]
+            newSentenceTokens += tokenList
+
+        # stemming
+        stemmedTokens = self.stemWords(newSentenceTokens)
+        # stemmedTokens = newSentenceTokens
+        
+        return stemmedTokens
+    
+    def stemWords(self, tokenList : list[str]) -> list[str]:
+        return [self.stemmer.stem(token) for token in tokenList]
+    
+    def processWord(self, word : str) -> str:
         return self.stemmer.stem(word.lower())
 
     def readData(self, fileName) -> pd.DataFrame:

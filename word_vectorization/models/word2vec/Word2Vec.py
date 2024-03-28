@@ -31,14 +31,12 @@ class Word2Vec(WordVectorizationModel):
                 print("Saved embeddings not found. Starting training from scratch.")    
         
         trainDataset = Word2VecDataset(list(chain.from_iterable(self.tokens)), self.contextSize, self.k, self.wordIndices)
+        trainLoader = torch.utils.data.DataLoader(trainDataset, batch_size=batchSize, shuffle=True)
         
         optimizer = torch.optim.Adam(self.word2VecModel.parameters(), lr=lr)
         criterion = torch.nn.BCELoss()
 
-        trainLoader = torch.utils.data.DataLoader(trainDataset, batch_size=batchSize, shuffle=True)
-
         trainLoss = []
-
         for epoch in range(epochs):
             runningLoss = 0
             for x, y in tqdm.tqdm(trainLoader, desc='Training', leave=True):
@@ -46,10 +44,10 @@ class Word2Vec(WordVectorizationModel):
                 output = self.word2VecModel(x)
                 
                 loss = criterion(output.reshape(-1, self.contextSize*2*(self.k+1)), y[:, 1:].float())
-                runningLoss = loss.item()
-
                 loss.backward()
                 optimizer.step()
+
+                runningLoss += loss.item()
 
             runningLoss /= len(trainLoader)
             trainLoss.append(runningLoss)
@@ -58,6 +56,7 @@ class Word2Vec(WordVectorizationModel):
                 print(f'Epoch {epoch+1}/{epochs} Loss: {runningLoss}')
         
         self.embeddings = self.word2VecModel.wordEmbeddings.cpu().weight.detach().numpy() + self.word2VecModel.contextEmbeddings.cpu().weight.detach().numpy()
+        # self.embeddings /= np.linalg.norm(self.embeddings, axis=1, keepdims=True)
         
         self.__saveEmbeddings()
 
@@ -92,9 +91,11 @@ class Word2Vec(WordVectorizationModel):
     def getClosestWordEmbeddings(self, wordEmbedding : np.ndarray, k : int = 10) -> dict[str, np.ndarray]:
         """
         Parameters:
-            wordEmbedding: a numpy array of size (self.embeddingSize, )
+            wordEmbedding: a numpy array of size (self.embeddingSize, ). Normalized word embedding.
             k: number of closest word embeddings to return
         """
+        # wordEmbedding /= np.linalg.norm(wordEmbedding)
+        # distances = 1 - np.dot(self.embeddings, wordEmbedding)
         distances = np.linalg.norm(self.embeddings - wordEmbedding, axis=1)
         kClosestIndices = np.argsort(distances)[:k]
 
@@ -117,5 +118,5 @@ class Word2VecClassifier(torch.nn.Module):
         # rest are the context words and negative samples
         embeds = self.contextEmbeddings(x[:, 1:]) # size (batch_size, 2 * contextSize * (k + 1), embeddingSize)
 
-        output = self.sigmoid(embeds.mm(torch.transpose(word, 1, 2))) # size (2 * contextSize * (k + 1), 1) 
+        output = self.sigmoid(torch.matmul(embeds, torch.transpose(word, 1, 2))) # size (2 * contextSize * (k + 1), 1) 
         return output

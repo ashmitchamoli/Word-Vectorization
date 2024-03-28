@@ -4,12 +4,12 @@ from word_vectorization.models.word2vec.Word2Vec import Word2Vec
 
 import numpy as np
 
-# trainFileName = './data/News Classification Dataset/train.csv'
-trainFileName = './data/SvdData/train.csv'
+trainFileName = './data/W2vData/train.csv'
+# trainFileName = './data/SvdData/train.csv'
 
-word2VecModel = Word2Vec(2, trainFileName, embeddingSize=100, k=3)
+word2VecModel = Word2Vec(2, trainFileName, embeddingSize=100, k=4)
 
-word2VecModel.train(epochs=1, lr=0.001, batchSize=32, verbose=True, retrain=True)
+word2VecModel.train(epochs=4, lr=0.005, batchSize=32, verbose=True, retrain=False)
 
 # svdModel = SvdWordVectorizationModel(5, trainFileName, embeddingSize=16)
 # print(len(svdModel.indexWords))
@@ -43,3 +43,4 @@ word2VecModel.train(epochs=1, lr=0.001, batchSize=32, verbose=True, retrain=True
 print([key for key in word2VecModel.getClosestWordEmbeddings(word2VecModel.getEmbedding('job'), 5)])
 print([key for key in word2VecModel.getClosestWordEmbeddings(word2VecModel.getEmbedding('man'), 5)])
 print([key for key in word2VecModel.getClosestWordEmbeddings(word2VecModel.getEmbedding('woman'), 5)])
+print([key for key in word2VecModel.getClosestWordEmbeddings(word2VecModel.getEmbedding('bank'), 5)])
