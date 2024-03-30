@@ -1,0 +1,3 @@
+/model_cache/svd/*
+/model_cache/word2vec/*
+/model_cache/lstm_classifier/*
