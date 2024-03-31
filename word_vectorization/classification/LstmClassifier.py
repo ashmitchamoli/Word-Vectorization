@@ -55,7 +55,10 @@ class SentenceClassifier:
             
             runningLoss /= len(trainLoader)
             self.logs[epoch]['Loss'] = runningLoss
-            # self.logs[epoch]['Scores'] = self.evaluate(self.trainDataset)
+            
+            # save every 3 epochs
+            if (epoch+1) % 3 == 0:
+                self._saveModel()
 
             if verbose:
                 print(f'Epoch {epoch+1}/{epochs} | Loss: {runningLoss:.3f}')

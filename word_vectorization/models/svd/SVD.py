@@ -21,7 +21,7 @@ class SvdWordVectorizationModel(WordVectorizationModel):
         self.MODEL_CACHE_PATH = './model_cache/svd'
 
     def train(self, verbose : bool = True, retrain : bool = False):
-        if self._loadEmbeddings() and not retrain:
+        if not retrain and self._loadEmbeddings():
             if verbose:
                 print("Model already trained. Embeddings loaded.")
             return self.embeddings
@@ -51,6 +51,10 @@ class SvdWordVectorizationModel(WordVectorizationModel):
         return self.embeddings
 
     def computeCoOccurrenceMatrix(self):
+        """
+        Returns
+            coOccurrenceMatrix: a scipy.sparse.lil_matrix object of size (self.vocabularySize, self.vocabularySize), where entry (i, j) represents the number of times the word j appears in the  and word j co-occur in the corpus.
+        """
         coOccurrenceMatrix = self.initializeCoOccurrenceMatrix()
         for sentence in self.tokens:
             i = 0
